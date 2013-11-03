@@ -5,7 +5,8 @@ Boolean debug = true;
 int fps = 60;
 float blade_w = PI/3.0;
 int inner_r = 0, outer_r = 0;
-int slowdown = 10;
+float slowdown = 0.01; // 10
+int playTime = 21;
 
 PVector hand_position = new PVector(0, 0, 0);
 PVector hand_position_pre = new PVector(0, 0, 0);
@@ -23,9 +24,10 @@ float saturation = 100, brightness = 100;
 float blade_alpha = 100, bg_alpha = 0;
 int point = 0;
 float dot_move = 0;
+Boolean movingBall = false;
 
 void setup() {
-  if (debug) size(800, 800, P3D);
+  if (debug) size(1000, 1000, P3D);
   else size(1600, 1600);
   frameRate(fps);
   colorMode(HSB, 360, 100, 100, 100);
@@ -55,19 +57,20 @@ void init_var() {
   //  for (int i=0; i<avrg_dist.length; i++) avrg_dist[i] = 0;
   inner_r = width/10;
   outer_r = width/2;
-  float c = random(0, 120);
+  float c = random(0, 1);
   for (int i=0; i<3; i++) {
-    blade_color[i] = c+120*i;
+    blade_color[i] = (c+i)*120;
   }
+  println(blade_color);
   PFont myFont = createFont("Georgia", inner_r/2);
   textFont(myFont);
-  startTimmer = second()+15;
+  startTimmer = second()+playTime;
 }
 
 void drawFan() {
   noStroke();
-  fill(0, 0, 100, blade_alpha);
-  rect(0, 0, width, height);
+  //  fill(0, 0, 100, blade_alpha);
+  //  rect(0, 0, width, height);
 
   rotate_angle += rotate_interval;
   pushMatrix();
@@ -95,7 +98,7 @@ void drawFan() {
   translate(width/2, height/2);
   rotate(rotate_angle+PI);
   for (int i=0; i<6; i+=2) {
-    fill(blade_color[i/2], 0, 100, blade_alpha);
+    fill(0, 0, 100, blade_alpha);
     beginShape();
     vertex(inner_r*cos(blade_w*i), inner_r*sin(blade_w*i));
     vertex(outer_r*cos(blade_w*i), outer_r*sin(blade_w*i));
@@ -109,29 +112,41 @@ void drawFan() {
 }
 
 void update() {
-  speed -= slowdown;
+  speed -= speed*slowdown;
   if (speed<0) speed = 0;
   println(speed); // 0-8000
   rotate_interval = map(constrain(speed, 0, 8000), 0, 8000, 0, PI/1.7);
-  blade_alpha = map(constrain(speed, 0, 8000), 0, 2000, 0, 100);
+  blade_alpha = map(constrain(speed, 600, 8000), 600, 2000, 0, 100);
   dot_move = map(constrain(speed, 0, 8000), 0, 3000, 0, outer_r-inner_r);
 }
 
 void drawInterface() {  
   stroke(0, 0, 0, 100);
-  fill(0, 0, 100, 100);
+  strokeWeight(inner_r/25);
+  fill(0, blade_alpha-50, 100, 100);
   ellipse(width/2, height/2, inner_r*2, inner_r*2);
+
   noFill();
   ellipse(width/2, height/2, inner_r*2-10, inner_r*2);
   ellipse(width/2, height/2, inner_r*2, inner_r*2-10);
+  stroke(0, 0, 0, 100);
+  strokeWeight(inner_r/2);
+  ellipse(width/2, height/2, outer_r*2+inner_r/4, outer_r*2+inner_r/4);
 
   textSize(inner_r/3);
   fill(0);
   textAlign(CENTER, CENTER);
-  int timmer = constrain(15-int(millis()/1000), 0, 100);
-  if (count>2) text(timmer, width/2, height/2-inner_r/2);
+  int timmer = constrain(playTime-int(millis()/1000), 0, 100);
+  if (count>2) {
+//    noStroke();
+//    fill(10, 100, 100, blade_alpha);
+//    ellipse(width/2, height/2, inner_r*2, inner_r*2);
+//    fill(0);
+    text(timmer, width/2, height/2-inner_r/2);
+  }
+  fill(0);
   textSize(inner_r/1.5);
-  text(point, width/2, height/2+inner_r/2);
+  text(point, width/2, height/2+inner_r/4);
 }
 
 void getHand() {
@@ -148,7 +163,7 @@ void getHand() {
     dist = dist(hand_position.x, hand_position.y, hand_position.z, hand_position_pre.x, hand_position_pre.y, hand_position_pre.z);
     //println(dist); // 0-125
 
-    if (15-int(millis()/1000)>0) {
+    if (playTime-int(millis()/1000)>0) {
       speed += dist;
       point += int(dist)/10;
     }
@@ -177,5 +192,11 @@ void leapOnInit() {
 
 void leapOnConnect() {
   println("Leap Motion Connect");
+}
+
+void keyPressed() {
+   if (key == 'b' || key == 'B') {
+    movingBall = !movingBall;
+  }
 }
 
